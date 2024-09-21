@@ -1,4 +1,5 @@
 # APB_MS
 This a simple APB model. Follows the arm APB protocol spec.
 
-![image](https://github.com/user-attachments/assets/501735af-0965-448a-8a6a-58777f8aff9a)
+![image](https://github.com/user-attachments/assets/47a92f28-2080-433d-80d0-f16eac875240)
+

@@ -1,19 +1,39 @@
-'timescale 1ns / 1ps
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 09/21/2024 05:17:36 PM
+// Design Name: 
+// Module Name: APB_slave
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
 
 module APB_slave #(parameter 
     size = 32,
-    ad_size = 8
+    addr = 8 
 )(
-    input                clk,
+    input                clk_APB,
     input                rst, 
     output               PREADY, 
     output [size-1 : 0]  PRDATA,  
     input                PSEL, 
     input                PEN, 
     input                PW, 
-    input [size-1 : 0]   PWDATA, 
-    input [ad_size-1: 0] PADDR, 
-    input [size-1 : 0]   PWDI2C);
+    input  [size-1 : 0]  PWDATA, 
+    input  [addr-1:0]    PADDR,
+    output [size-1:0]    PRESCALAR);
 
 //|Write|  Register  |  address  |
 //|-----|------------|-----------|
@@ -27,40 +47,41 @@ module APB_slave #(parameter
 //|  "  |  status    |     5     |
 
 
-reg [size-1:0] device_regs [ad_size-1:0];
-reg [$clog2(ad-size)-1:0] i;
-
+    reg [size-1:0] device_regs [addr-1:0];
+// 000,001,010,011,100,101,110,111
 
 // Write: The registers are written from both the sides
 // APB side write 0 to 3 addresses and reads 4 & 5
 // I2C side writes 4 & 5 and read 0 to 3.
 // Using PW from controlling the writing and reading of APB side
  
-
-always @ (posedge clk,negedge rst) begin
-    if (!rst) begin
-        for (i = 0; i < ad_size ; i = i + 1) begin
-            device_regs[i] = 'd0;
+    assign PRESCALAR = device_regs[0];
+    
+    always @ (posedge clk_APB,negedge rst) begin
+        if(!rst) begin
+            device_regs[0][size-1:0] <= 'd0;
+            device_regs[1][size-1:0] <= 'd0;
+            device_regs[2][size-1:0] <= 'd0;
+            device_regs[3][size-1:0] <= 'd0;
+            device_regs[4][size-1:0] <= 'hbababab4;
+            device_regs[5][size-1:0] <= 'hcacacac5;
+            device_regs[6][size-1:0] <= 'd0;
+            device_regs[7][size-1:0] <= 'd0;
+        end
+        else if (PADDR == 'd0 || PADDR == 'd1 || PADDR == 'd2 || PADDR == 'd3) begin
+            device_regs[PADDR] <= (PW && PREADY) ? PWDATA : device_regs[PADDR];
+        end
+        else begin
+            device_regs[PADDR] <= device_regs[PADDR];
         end
     end
-    else if (PADDR == 'd0 || PADDR == 'd1 || PADDR == 'd2 || PADDR == 'd3) begin
-        device_regs[PADDR] = PW ? PWDATA : device_regs[PADDR];
-    end
-    else begin
-        device_regs[PADDR] = PWDI2C;
-    end
-end
+    
 
 
 // Read
-assign PRDATA = !PW ? device_regs[PADDR] : 'd0;
+    assign PRDATA = (!PW && PREADY) ? device_regs[PADDR] : 'd0;
 
-// Ready
-assign PREADY = PSEL & PEN;
-
+// Ready: Extra logic can be added.
+    assign PREADY = PSEL & PEN;  
+     
 endmodule
-
-
-
-
-
